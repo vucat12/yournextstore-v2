@@ -12,7 +12,9 @@ import { ProductList } from "./commercegpt/product-list";
 import { YnsLink } from "./yns-link";
 
 export function CommerceGPT() {
-	const { messages, input, handleInputChange, handleSubmit, append, data } = useChat({});
+	const { messages, input, handleInputChange, handleSubmit, append, data, sendMessage } = useChat({});
+
+	console.log("messages", messages);
 
 	useEffect(() => {
 		const d = data as Array<{ operation?: "cartAdd"; cartId: string } | undefined> | undefined;
@@ -43,7 +45,7 @@ export function CommerceGPT() {
 	}, []);
 
 	return (
-		<div className="flex flex-col">
+		<div className="flex flex-col z-50">
 			<div className="bg-linear-to-r from-orange-100 via-orange-200 to-red-300 px-4 py-3 text-indigo-900">
 				<div className="flex items-center justify-between gap-x-4">
 					<div className="mx-auto flex max-w-7xl items-center justify-between gap-x-4">
@@ -94,7 +96,9 @@ export function CommerceGPT() {
 											variant="outline"
 											className="text-lg text-neutral-500"
 											size="lg"
-											onClick={() => append({ role: "user", content: "Show me some bags" })}
+											onClick={() => {
+												sendMessage({ text: "Show me some bags" });
+											}}
 										>
 											Show me some bags
 										</Button>
@@ -102,7 +106,10 @@ export function CommerceGPT() {
 											variant="outline"
 											className="text-lg text-neutral-500"
 											size="lg"
-											onClick={() => append({ role: "user", content: "Show me cool sunglasses" })}
+											onClick={() => {
+												sendMessage({ text: "Show me cool sunglasses" });
+												append({ role: "user", content: "Show me cool sunglasses" });
+											}}
 										>
 											Looking for cool glasses
 										</Button>
@@ -112,49 +119,55 @@ export function CommerceGPT() {
 							{messages.map((m) => (
 								<div key={m.id} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
 									<div
-										className={`text-lg rounded px-2 py-1 max-w-[80%] ${m.role === "user" ? "bg-linear-to-l from-orange-500 via-red-400 to-red-500 text-white" : (m.toolInvocations || []).length > 0 ? "bg-transparent" : "bg-neutral-100"}`}
+										className={`text-lg rounded px-2 py-1 max-w-[80%] ${m.role === "user" ? "bg-linear-to-l from-orange-500 via-red-400 to-red-500 text-white" : m.parts.some((p) => p.type === "tool-invocation") ? "bg-transparent" : "bg-neutral-100"}`}
 									>
-										{m.content}
-										{m.toolInvocations?.map((ti) => {
-											return (
-												ti.state === "result" && (
-													<div key={ti.toolCallId}>
-														{(() => {
-															switch (ti.toolName) {
-																case "productSearch":
-																	if (ti.output.length === 0) return <>No results</>;
-																	return (
-																		<div className="grid cols-1 gap-4">
-																			<ProductList products={ti.output} />
+										{m.parts.map((part, i) => {
+											switch (part.type) {
+												case "text":
+													return <div key={i}>{part.text}</div>;
+												case "tool-invocation":
+													return (
+														part.toolInvocation.state === "result" && (
+															<div key={part.toolInvocation.toolCallId}>
+																{(() => {
+																	switch (part.toolInvocation.toolName) {
+																		case "productSearch":
+																			if (part.toolInvocation.result.length === 0) return <>No results</>;
+																			return (
+																				<div className="grid cols-1 gap-4">
+																					<ProductList products={part.toolInvocation.result} />
 
-																			<div className="flex flex-wrap justify-center gap-2 w-full">
-																				<Button
-																					variant="outline"
-																					className="text-lg text-neutral-500"
-																					size="lg"
-																					onClick={() =>
-																						append({
-																							role: "user",
-																							content: "Add the first product to the cart",
-																						})
-																					}
-																				>
-																					Add the first product to the cart
-																				</Button>
-																			</div>
-																		</div>
-																	);
-																default:
-																	return (
-																		<div className="text-lg rounded px-2 py-1 bg-neutral-100">
-																			{ti.output}
-																		</div>
-																	);
-															}
-														})()}
-													</div>
-												)
-											);
+																					<div className="flex flex-wrap justify-center gap-2 w-full">
+																						<Button
+																							variant="outline"
+																							className="text-lg text-neutral-500"
+																							size="lg"
+																							onClick={() =>
+																								append({
+																									role: "user",
+																									content: "Add the first product to the cart",
+																								})
+																							}
+																						>
+																							Add the first product to the cart
+																						</Button>
+																					</div>
+																				</div>
+																			);
+																		default:
+																			return (
+																				<div className="text-lg rounded px-2 py-1 bg-neutral-100">
+																					{part.toolInvocation.result}
+																				</div>
+																			);
+																	}
+																})()}
+															</div>
+														)
+													);
+												default:
+													return null;
+											}
 										})}
 									</div>
 								</div>
@@ -175,12 +188,6 @@ export function CommerceGPT() {
 					</CardContent>
 				</Card>
 			</div>
-			{isOpen && (
-				<div
-					className="fixed inset-0 bg-black bg-opacity-50 transition-opacity ease-in-out duration-300"
-					onClick={() => setIsOpen(false)}
-				/>
-			)}
 		</div>
 	);
 }

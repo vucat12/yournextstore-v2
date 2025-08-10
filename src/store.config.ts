@@ -1,10 +1,7 @@
-import AccessoriesImage from "@/images/accessories.jpg";
-import ApparelImage from "@/images/apparel.jpg";
-
 export const config = {
 	categories: [
-		{ name: "Apparel", slug: "apparel", image: ApparelImage },
-		{ name: "Accessories", slug: "accessories", image: AccessoriesImage },
+		{ name: "Apparel", slug: "apparel", image: "/images/apparel.jpg" },
+		{ name: "Accessories", slug: "accessories", image: "/images/accessories.jpg" },
 	],
 
 	social: {
