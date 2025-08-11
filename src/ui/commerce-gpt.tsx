@@ -3,33 +3,39 @@
 import { useChat } from "@ai-sdk/react";
 import { ArrowUp, ChevronDown } from "lucide-react";
 import { usePathname } from "next/navigation";
-import { startTransition, useEffect, useRef, useState } from "react";
-import { commerceGPTRevalidateAction, setInitialCartCookiesAction } from "@/actions/cart-actions";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { ProductList } from "./commercegpt/product-list";
+import { useEffect, useRef, useState } from "react";
+import { Button } from "@/ui/shadcn/button";
+import { Card, CardContent } from "@/ui/shadcn/card";
+import { Input } from "@/ui/shadcn/input";
+
 import { YnsLink } from "./yns-link";
+import { ProductList } from "@/ui/commercegpt/product-list";
+import { cx } from "class-variance-authority";
 
 export function CommerceGPT() {
-	const { messages, input, handleInputChange, handleSubmit, append, data, sendMessage } = useChat({});
+	const { messages, sendMessage } = useChat();
+	const [input, setInput] = useState("");
+
+	const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+		setInput(e.target.value);
+	};
+
+	const handleSubmit = (e: React.FormEvent) => {
+		e.preventDefault();
+		if (input.trim()) {
+			sendMessage({ text: input });
+			setInput("");
+		}
+	};
+
+	const append = (message: { role: string; content: string }) => {
+		sendMessage({ text: message.content });
+	};
 
 	console.log("messages", messages);
 
-	useEffect(() => {
-		const d = data as Array<{ operation?: "cartAdd"; cartId: string } | undefined> | undefined;
-		const cartId = d?.find((d) => d?.operation === "cartAdd")?.cartId;
-		if (cartId) {
-			startTransition(async () => {
-				await setInitialCartCookiesAction(cartId, 1);
-				await commerceGPTRevalidateAction();
-			});
-		}
-	}, [data]);
 	const [isOpen, setIsOpen] = useState(false);
-
 	const pathname = usePathname();
-
 	const ref = useRef<HTMLInputElement>(null);
 
 	useEffect(() => {
@@ -45,8 +51,10 @@ export function CommerceGPT() {
 	}, []);
 
 	return (
-		<div className="flex flex-col z-50">
-			<div className="bg-linear-to-r from-orange-100 via-orange-200 to-red-300 px-4 py-3 text-indigo-900">
+		<div className="flex flex-col">
+			<div className={cx("bg-linear-to-r from-orange-100 via-orange-200 to-red-300 px-4 py-3 text-indigo-900 z-50 bg-white sm:h-[var(--commerce-gpt-height)]", {
+				"hidden": isOpen
+			})}>
 				<div className="flex items-center justify-between gap-x-4">
 					<div className="mx-auto flex max-w-7xl items-center justify-between gap-x-4">
 						<div className="flex items-center gap-x-4">
@@ -67,7 +75,7 @@ export function CommerceGPT() {
 					</div>
 					<YnsLink
 						className="bg-black rounded-full text-white px-4 py-1 text-sm"
-						href="https://github.com/yournextstore/yournextstore"
+						href="https://github.com/vucat12/yournextstore"
 						target="_blank"
 					>
 						View on GitHub
@@ -75,13 +83,13 @@ export function CommerceGPT() {
 				</div>
 			</div>
 			<div
-				className={`z-100 overflow-clip fixed top-0 left-0 right-0 bg-neutral-50 transition-all duration-300 ease-in-out shadow-lg ${
+				className={`z-40 overflow-clip fixed top-0 left-0 right-0 bg-neutral-50 transition-all duration-300 ease-in-out shadow-lg sm:top-[var(--header-height)] ${
 					isOpen ? "h-2/3" : "h-0"
 				}`}
 			>
 				<Card className="w-full h-full rounded-none max-w-(--breakpoint-lg) mx-auto border-transparent">
 					<CardContent className="p-4 h-full flex flex-col">
-						<div className="grow overflow-auto space-y-4 mb-4">
+						<div className="grow overflow-auto space-y-4 mb-4 place-content-end">
 							{messages.length === 0 && (
 								<div className="flex-1 overflow-y-auto p-4 flex flex-col items-center justify-center space-y-6 h-full">
 									<h3 className="text-xl font-bold text-center">
@@ -97,10 +105,10 @@ export function CommerceGPT() {
 											className="text-lg text-neutral-500"
 											size="lg"
 											onClick={() => {
-												sendMessage({ text: "Show me some bags" });
+												sendMessage({ text: "Show me some skirts" });
 											}}
 										>
-											Show me some bags
+											Show me some skirts
 										</Button>
 										<Button
 											variant="outline"
@@ -108,7 +116,6 @@ export function CommerceGPT() {
 											size="lg"
 											onClick={() => {
 												sendMessage({ text: "Show me cool sunglasses" });
-												append({ role: "user", content: "Show me cool sunglasses" });
 											}}
 										>
 											Looking for cool glasses
@@ -119,48 +126,38 @@ export function CommerceGPT() {
 							{messages.map((m) => (
 								<div key={m.id} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
 									<div
-										className={`text-lg rounded px-2 py-1 max-w-[80%] ${m.role === "user" ? "bg-linear-to-l from-orange-500 via-red-400 to-red-500 text-white" : m.parts.some((p) => p.type === "tool-invocation") ? "bg-transparent" : "bg-neutral-100"}`}
+										className={`text-lg rounded px-2 py-1 max-w-[80%] ${m.role === "user" ? "bg-linear-to-l from-orange-500 via-red-400 to-red-500" : m.parts.some((p) => p.type === "tool-invocation") ? "bg-transparent" : "bg-neutral-100"}`}
 									>
 										{m.parts.map((part, i) => {
 											switch (part.type) {
 												case "text":
-													return <div key={i}>{part.text}</div>;
-												case "tool-invocation":
+													return <div className="user-message-bubble-color px-4 py-1.5" key={i}>{part.text}</div>;
+												case "tool-productSearch":
 													return (
-														part.toolInvocation.state === "result" && (
-															<div key={part.toolInvocation.toolCallId}>
+														part.state === "output-available" && (
+															<div key={part.toolCallId}>
 																{(() => {
-																	switch (part.toolInvocation.toolName) {
-																		case "productSearch":
-																			if (part.toolInvocation.result.length === 0) return <>No results</>;
-																			return (
-																				<div className="grid cols-1 gap-4">
-																					<ProductList products={part.toolInvocation.result} />
+																			if (!Array.isArray(part.output) || part.output.length === 0) return <>No results</>;
+																		return <div className="grid cols-1 gap-4">
+																				<ProductList products={part.output as any} />
 
-																					<div className="flex flex-wrap justify-center gap-2 w-full">
-																						<Button
-																							variant="outline"
-																							className="text-lg text-neutral-500"
-																							size="lg"
-																							onClick={() =>
-																								append({
-																									role: "user",
-																									content: "Add the first product to the cart",
-																								})
-																							}
-																						>
-																							Add the first product to the cart
-																						</Button>
-																					</div>
+																				<div className="flex flex-wrap justify-center gap-2 w-full">	
+																					<Button
+																						variant="outline"
+																						className="text-lg text-neutral-500"
+																						size="lg"
+																						onClick={() =>
+																							append({
+																								role: "user",
+																								content: "Add the first product to the cart",
+																							})
+																						}
+																					>
+																						Add the first product to the cart
+																					</Button>
 																				</div>
-																			);
-																		default:
-																			return (
-																				<div className="text-lg rounded px-2 py-1 bg-neutral-100">
-																					{part.toolInvocation.result}
-																				</div>
-																			);
-																	}
+																			</div>
+																	
 																})()}
 															</div>
 														)
@@ -188,6 +185,12 @@ export function CommerceGPT() {
 					</CardContent>
 				</Card>
 			</div>
+			{isOpen && (
+				<div
+					className="fixed inset-0 bg-black bg-opacity-50 transition-opacity ease-in-out duration-300"
+					onClick={() => setIsOpen(false)}
+				/>
+			)}
 		</div>
 	);
 }

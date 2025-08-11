@@ -7,7 +7,7 @@ import { YnsLink } from "@/ui/yns-link";
 
 export const Nav = async () => {
 	return (
-		<header className="z-50 py-4 sticky top-0 bg-white/90 backdrop-blur-xs nav-border-reveal">
+		<header className="z-50 py-4 sticky top-0 bg-white/90 backdrop-blur-xs nav-border-reveal sm:h-[var(--header-height)]">
 			<div className="mx-auto flex max-w-7xl items-center gap-2 px-4 flex-row sm:px-6 lg:px-8">
 				<YnsLink href="/">
 					<SeoH1 className="-mt-0.5 whitespace-nowrap text-xl font-bold">Your Next Store</SeoH1>
@@ -20,7 +20,7 @@ export const Nav = async () => {
 					<SearchNav />
 				</div>
 				<CartSummaryNav />
-				<YnsLink href="/login">
+				<YnsLink href="/login" className="hidden sm:block">
 					<UserIcon className="hover:text-neutral-500" />
 				</YnsLink>
 			</div>

@@ -1,5 +1,5 @@
 import { openai } from "@ai-sdk/openai";
-import { streamText, tool } from "ai";
+import { streamText, tool, convertToModelMessages } from "ai";
 import { z } from "zod";
 import { addToCartAction } from "@/actions/cart-actions";
 import { searchProducts } from "@/lib/search/search";
@@ -12,11 +12,12 @@ export async function POST(req: Request) {
 
 		// biome-ignore lint/suspicious/noExplicitAny: Request body type is not strictly defined
 		const messages = (json as any).messages;
+		const modelMessages = convertToModelMessages(messages);
 
 		const result = streamText({
 			system: "Every search query should be changed to singular form",
-			model: openai("gpt-4o-mini"),
-			messages,
+			model: openai("gpt-4.1-nano"),
+			messages: modelMessages,
 			tools: {
 				productSearch: tool({
 					description: "Get a list of matching products",
